@@ -1,5 +1,7 @@
 import { useState } from "react";
+import { useNavigate } from "react-router-dom";
 import api from "../../services/api";
+import { useAuth } from "../../context/AuthContext";
 import "../../styles/createPostModal.css";
 
 const CreatePostModal = ({ isOpen, onClose, onPostCreated }) => {
@@ -9,19 +11,11 @@ const CreatePostModal = ({ isOpen, onClose, onPostCreated }) => {
     });
     const [error, setError] = useState("");
     const [isSubmitting, setIsSubmitting] = useState(false);
+    const { user, logout } = useAuth();
+    const navigate = useNavigate();
 
     const getAuthorName = () => {
-        try {
-            const userStr = localStorage.getItem("user");
-            if (userStr) {
-                const user = JSON.parse(userStr);
-                return user.name || "Usuario Anónimo";
-            }
-            return "Usuario Anónimo";
-        } catch (error) {
-            console.error("Error al obtener usuario:", error);
-            return "Usuario Anónimo";
-        }
+        return user?.name || "Usuario Anónimo";
     };
 
     const handleChange = (e) => {
@@ -49,9 +43,8 @@ const CreatePostModal = ({ isOpen, onClose, onPostCreated }) => {
                 setError("No se pudo obtener tu información de usuario. Por favor, vuelve a iniciar sesión.");
                 setIsSubmitting(false);
                 setTimeout(() => {
-                    localStorage.removeItem("token");
-                    localStorage.removeItem("user");
-                    window.location.href = "/login";
+                    logout();
+                    navigate("/login");
                 }, 2000);
                 return;
             }
@@ -75,10 +68,9 @@ const CreatePostModal = ({ isOpen, onClose, onPostCreated }) => {
             console.error("Error al crear post:", err);
             if (err.response && err.response.status === 401) {
                 setError("Tu sesión ha expirado. Por favor, inicia sesión nuevamente.");
-                localStorage.removeItem("token");
-                localStorage.removeItem("user");
+                logout();
                 setTimeout(() => {
-                    window.location.href = "/login";
+                    navigate("/login");
                 }, 2000);
             } else if (err.response && err.response.status === 400) {
                 const errorMsg = err.response.data?.errors

@@ -1,27 +1,26 @@
-import { useState, useEffect } from 'react';
+import { useState } from 'react';
+import { useNavigate } from 'react-router-dom';
+import { useAuth } from '../../context/AuthContext';
 import '../../styles/header.css';
 
 const Header = () => {
     const [isMenuOpen, setIsMenuOpen] = useState(false);
-    const [isAuthenticated, setIsAuthenticated] = useState(false);
-
-    useEffect(() => {
-        const token = localStorage.getItem('token');
-        setIsAuthenticated(!!token);
-    }, []);
+    const { isAuthenticated, logout } = useAuth();
+    const navigate = useNavigate();
 
     const toggleMenu = () => {
         setIsMenuOpen(!isMenuOpen);
     };
 
     const handleLogout = () => {
-        localStorage.removeItem('token');
-        setIsAuthenticated(false);
-        window.location.href = '/login';
+        logout();
+        setIsMenuOpen(false);
+        navigate('/login');
     };
 
     const handleLogin = () => {
-        window.location.href = '/login';
+        navigate('/login');
+        setIsMenuOpen(false);
     };
 
     const closeMenu = () => {
@@ -74,3 +73,4 @@ const Header = () => {
 };
 
 export default Header;
+

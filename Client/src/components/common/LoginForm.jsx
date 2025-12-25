@@ -1,11 +1,15 @@
 import { useState } from "react";
+import { useNavigate } from "react-router-dom";
 import axios from "axios";
+import { useAuth } from "../../context/AuthContext";
 
 const LoginForm = () => {
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [error, setError] = useState("");
   const [success, setSuccess] = useState("");
+  const { login } = useAuth();
+  const navigate = useNavigate();
 
   const handleSubmit = async (e) => {
     e.preventDefault();
@@ -19,11 +23,12 @@ const LoginForm = () => {
       });
 
       setSuccess("Login exitoso! espere un momento");
-      localStorage.setItem("token", response.data.token);
-      localStorage.setItem("user", JSON.stringify(response.data.user));
-      // console.log("Respuesta del servidor:", response.data);
+
+      // Usar la función login del contexto
+      login(response.data.user, response.data.token);
+
       setTimeout(() => {
-        window.location.href = "/";
+        navigate("/");
       }, 1000);
     } catch (err) {
       if (err.response) {
@@ -68,3 +73,4 @@ const LoginForm = () => {
 };
 
 export default LoginForm;
+
