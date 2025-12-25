@@ -42,23 +42,58 @@ export const getTimeUntilExpiration = (token) => {
     return Math.max(0, timeRemaining);
 };
 
-// Almacena los tokens en localStorage
-export const storeTokens = (accessToken, refreshToken) => {
-    localStorage.setItem('token', accessToken);
-    localStorage.setItem('refreshToken', refreshToken);
+const REMEMBER_ME_KEY = 'rememberMe';
+
+// Establece la preferencia de "recordar sesión"
+export const setRememberMe = (remember) => {
+    localStorage.setItem(REMEMBER_ME_KEY, remember.toString());
 };
 
-// Obtiene los tokens almacenados desde localStorage
+// Obtiene la preferencia de "recordar sesión"
+export const getRememberMe = () => {
+    const value = localStorage.getItem(REMEMBER_ME_KEY);
+    return value === 'true';
+};
+
+// Obtiene el storage apropiado según la preferencia
+const getStorage = () => {
+    return getRememberMe() ? localStorage : sessionStorage;
+};
+
+// Almacena los tokens en localStorage o sessionStorage según la preferencia
+export const storeTokens = (accessToken, refreshToken, rememberMe = null) => {
+    if (rememberMe !== null) {
+        setRememberMe(rememberMe);
+    }
+
+    const storage = getStorage();
+    storage.setItem('token', accessToken);
+    storage.setItem('refreshToken', refreshToken);
+};
+
+// Obtiene los tokens almacenados desde localStorage o sessionStorage
 export const getStoredTokens = () => {
+    let accessToken = localStorage.getItem('token');
+    let refreshToken = localStorage.getItem('refreshToken');
+
+    if (!accessToken || !refreshToken) {
+        accessToken = sessionStorage.getItem('token');
+        refreshToken = sessionStorage.getItem('refreshToken');
+    }
+
     return {
-        accessToken: localStorage.getItem('token'),
-        refreshToken: localStorage.getItem('refreshToken'),
+        accessToken,
+        refreshToken,
     };
 };
 
-// Elimina todos los tokens de localStorage
+// Elimina todos los tokens de ambos storages
 export const clearTokens = () => {
     localStorage.removeItem('token');
     localStorage.removeItem('refreshToken');
     localStorage.removeItem('user');
+
+    sessionStorage.removeItem('token');
+    sessionStorage.removeItem('refreshToken');
+    sessionStorage.removeItem('user');
 };

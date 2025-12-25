@@ -84,7 +84,10 @@ export const AuthProvider = ({ children }) => {
     const loadAuthData = () => {
       try {
         const { accessToken, refreshToken } = getStoredTokens();
-        const userStr = localStorage.getItem('user');
+        let userStr = localStorage.getItem('user');
+        if (!userStr) {
+          userStr = sessionStorage.getItem('user');
+        }
 
         if (accessToken && refreshToken && userStr) {
           const user = JSON.parse(userStr);
@@ -113,7 +116,10 @@ export const AuthProvider = ({ children }) => {
 
       if (e.key === 'token' && e.newValue) {
         const { accessToken, refreshToken } = getStoredTokens();
-        const userStr = localStorage.getItem('user');
+        let userStr = localStorage.getItem('user');
+        if (!userStr) {
+          userStr = sessionStorage.getItem('user');
+        }
 
         if (accessToken && refreshToken && userStr) {
           try {
@@ -156,10 +162,12 @@ export const AuthProvider = ({ children }) => {
     };
   }, []);
 
-  const login = (user, accessToken, refreshToken) => {
+  const login = (user, accessToken, refreshToken, rememberMe = true) => {
     try {
-      storeTokens(accessToken, refreshToken);
-      localStorage.setItem('user', JSON.stringify(user));
+      storeTokens(accessToken, refreshToken, rememberMe);
+
+      const storage = rememberMe ? localStorage : sessionStorage;
+      storage.setItem('user', JSON.stringify(user));
 
       dispatch({
         type: AUTH_ACTIONS.LOGIN_SUCCESS,
@@ -211,7 +219,9 @@ export const AuthProvider = ({ children }) => {
 
   const refreshUser = (updatedUser) => {
     try {
-      localStorage.setItem('user', JSON.stringify(updatedUser));
+      const { accessToken } = getStoredTokens();
+      const storage = localStorage.getItem('token') ? localStorage : sessionStorage;
+      storage.setItem('user', JSON.stringify(updatedUser));
 
       dispatch({
         type: AUTH_ACTIONS.REFRESH_USER,

@@ -1,15 +1,22 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import axios from "axios";
 import { useAuth } from "../../context/AuthContext";
+import { getRememberMe } from "../../utils/tokenManager";
 
 const LoginForm = () => {
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
+  const [rememberMe, setRememberMe] = useState(true);
   const [error, setError] = useState("");
   const [success, setSuccess] = useState("");
   const { login } = useAuth();
   const navigate = useNavigate();
+
+  useEffect(() => {
+    const savedPreference = getRememberMe();
+    setRememberMe(savedPreference);
+  }, []);
 
   const handleSubmit = async (e) => {
     e.preventDefault();
@@ -24,8 +31,7 @@ const LoginForm = () => {
 
       setSuccess("Login exitoso! espere un momento");
 
-      // Usar la función login del contexto con accessToken y refreshToken
-      login(response.data.user, response.data.accessToken, response.data.refreshToken);
+      login(response.data.user, response.data.accessToken, response.data.refreshToken, rememberMe);
 
 
       setTimeout(() => {
@@ -63,6 +69,17 @@ const LoginForm = () => {
             required
           />
         </div>
+        <div className="remember-me-container">
+          <input
+            type="checkbox"
+            id="rememberMe"
+            checked={rememberMe}
+            onChange={(e) => setRememberMe(e.target.checked)}
+          />
+          <label htmlFor="rememberMe" className="remember-me-label">
+            Recordar sesión
+          </label>
+        </div>
         <button className="login-button" type="submit">
           Iniciar Sesión
         </button>
@@ -74,4 +91,3 @@ const LoginForm = () => {
 };
 
 export default LoginForm;
-
