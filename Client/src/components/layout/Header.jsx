@@ -53,11 +53,16 @@ const Header = () => {
                             <a href="/" onClick={closeMenu}>Posts</a>
                         </li>
                         {isAuthenticated ? (
-                            <li className="nav-item">
-                                <button className="btn-logout" onClick={handleLogout}>
-                                    Cerrar Sesión
-                                </button>
-                            </li>
+                            <>
+                                <li className="nav-item">
+                                    <a href="/account" onClick={closeMenu}>Mi Cuenta</a>
+                                </li>
+                                <li className="nav-item">
+                                    <button className="btn-logout" onClick={handleLogout}>
+                                        Cerrar Sesión
+                                    </button>
+                                </li>
+                            </>
                         ) : (
                             <li className="nav-item">
                                 <button className="btn-login" onClick={handleLogin}>
