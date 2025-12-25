@@ -1,9 +1,11 @@
 import { useState } from "react";
 import { useNavigate } from "react-router-dom";
 import axios from "axios";
+import { useAuth } from "../../context/AuthContext";
 
 const RegisterForm = () => {
     const navigate = useNavigate();
+    const { login } = useAuth();
     const [formData, setFormData] = useState({
         name: "",
         email: "",
@@ -42,10 +44,13 @@ const RegisterForm = () => {
                 password: formData.password,
             });
 
-            setSuccess("¡Registro exitoso! Redirigiendo al login...");
+            setSuccess("¡Registro exitoso! Iniciando sesión...");
+
+            login(response.data.user, response.data.accessToken, response.data.refreshToken);
+
             setTimeout(() => {
-                navigate("/login");
-            }, 1500);
+                navigate("/");
+            }, 1000);
         } catch (err) {
             if (err.response) {
                 setError(err.response.data.error || "Error en el registro");

@@ -24,8 +24,9 @@ const LoginForm = () => {
 
       setSuccess("Login exitoso! espere un momento");
 
-      // Usar la función login del contexto
-      login(response.data.user, response.data.token);
+      // Usar la función login del contexto con accessToken y refreshToken
+      login(response.data.user, response.data.accessToken, response.data.refreshToken);
+
 
       setTimeout(() => {
         navigate("/");

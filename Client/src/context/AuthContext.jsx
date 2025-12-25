@@ -1,4 +1,5 @@
 import { createContext, useContext, useReducer, useEffect } from 'react';
+import { storeTokens, clearTokens, getStoredTokens } from '../utils/tokenManager';
 
 const AUTH_ACTIONS = {
   LOGIN_SUCCESS: 'LOGIN_SUCCESS',
@@ -11,6 +12,7 @@ const AUTH_ACTIONS = {
 const initialState = {
   user: null,
   token: null,
+  refreshToken: null,
   isAuthenticated: false,
   isLoading: true,
   error: null,
@@ -23,6 +25,7 @@ const authReducer = (state, action) => {
         ...state,
         user: action.payload.user,
         token: action.payload.token,
+        refreshToken: action.payload.refreshToken,
         isAuthenticated: true,
         isLoading: false,
         error: null,
@@ -33,6 +36,7 @@ const authReducer = (state, action) => {
         ...state,
         user: null,
         token: null,
+        refreshToken: null,
         isAuthenticated: false,
         isLoading: false,
         error: null,
@@ -79,14 +83,14 @@ export const AuthProvider = ({ children }) => {
   useEffect(() => {
     const loadAuthData = () => {
       try {
-        const token = localStorage.getItem('token');
+        const { accessToken, refreshToken } = getStoredTokens();
         const userStr = localStorage.getItem('user');
 
-        if (token && userStr) {
+        if (accessToken && refreshToken && userStr) {
           const user = JSON.parse(userStr);
           dispatch({
             type: AUTH_ACTIONS.LOGIN_SUCCESS,
-            payload: { user, token },
+            payload: { user, token: accessToken, refreshToken },
           });
         } else {
           dispatch({ type: AUTH_ACTIONS.SET_LOADING, payload: false });
@@ -100,14 +104,66 @@ export const AuthProvider = ({ children }) => {
     loadAuthData();
   }, []);
 
-  const login = (user, token) => {
+  useEffect(() => {
+    const handleStorageChange = (e) => {
+      if (e.key === 'logout-event') {
+        dispatch({ type: AUTH_ACTIONS.LOGOUT });
+        return;
+      }
+
+      if (e.key === 'token' && e.newValue) {
+        const { accessToken, refreshToken } = getStoredTokens();
+        const userStr = localStorage.getItem('user');
+
+        if (accessToken && refreshToken && userStr) {
+          try {
+            const user = JSON.parse(userStr);
+            dispatch({
+              type: AUTH_ACTIONS.LOGIN_SUCCESS,
+              payload: { user, token: accessToken, refreshToken },
+            });
+          } catch (error) {
+            console.error('Error syncing login from another tab:', error);
+          }
+        }
+      }
+
+      if (e.key === 'token' && !e.newValue) {
+        dispatch({ type: AUTH_ACTIONS.LOGOUT });
+      }
+    };
+
+    window.addEventListener('storage', handleStorageChange);
+
+    return () => {
+      window.removeEventListener('storage', handleStorageChange);
+    };
+  }, []);
+
+  useEffect(() => {
+    const handleSessionExpired = () => {
+      dispatch({ type: AUTH_ACTIONS.LOGOUT });
+      dispatch({
+        type: AUTH_ACTIONS.SET_ERROR,
+        payload: 'Tu sesión ha expirado. Por favor, inicia sesión nuevamente.',
+      });
+    };
+
+    window.addEventListener('session-expired', handleSessionExpired);
+
+    return () => {
+      window.removeEventListener('session-expired', handleSessionExpired);
+    };
+  }, []);
+
+  const login = (user, accessToken, refreshToken) => {
     try {
-      localStorage.setItem('token', token);
+      storeTokens(accessToken, refreshToken);
       localStorage.setItem('user', JSON.stringify(user));
 
       dispatch({
         type: AUTH_ACTIONS.LOGIN_SUCCESS,
-        payload: { user, token },
+        payload: { user, token: accessToken, refreshToken },
       });
 
       return true;
@@ -121,10 +177,28 @@ export const AuthProvider = ({ children }) => {
     }
   };
 
-  const logout = () => {
+  const logout = async () => {
     try {
-      localStorage.removeItem('token');
-      localStorage.removeItem('user');
+      const { refreshToken } = getStoredTokens();
+
+      if (refreshToken) {
+        try {
+          await fetch('http://localhost:3000/user/logout', {
+            method: 'POST',
+            headers: {
+              'Content-Type': 'application/json',
+            },
+            body: JSON.stringify({ refreshToken }),
+          });
+        } catch (error) {
+          console.error('Error calling logout endpoint:', error);
+        }
+      }
+
+      clearTokens();
+
+      localStorage.setItem('logout-event', Date.now().toString());
+      localStorage.removeItem('logout-event');
 
       dispatch({ type: AUTH_ACTIONS.LOGOUT });
 
@@ -166,6 +240,7 @@ export const AuthProvider = ({ children }) => {
   const value = {
     user: state.user,
     token: state.token,
+    refreshToken: state.refreshToken,
     isAuthenticated: state.isAuthenticated,
     isLoading: state.isLoading,
     error: state.error,
